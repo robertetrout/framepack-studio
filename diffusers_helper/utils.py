@@ -8,9 +8,10 @@ import einops
 import numpy as np
 import datetime
 import torchvision
-
 import safetensors.torch as sf
+
 from PIL import Image
+from torchcodec.encoders import Encoder
 
 
 def min_resize(x, m):
@@ -275,9 +276,21 @@ def save_bcthw_as_mp4(x, output_filename, fps=10, crf=0):
     os.makedirs(os.path.dirname(os.path.abspath(os.path.realpath(output_filename))), exist_ok=True)
     x = torch.clamp(x.float(), -1., 1.) * 127.5 + 127.5
     x = x.detach().cpu().to(torch.uint8)
-    x = einops.rearrange(x, '(m n) c t h w -> t (m h) (n w) c', n=per_row)
-    torchvision.io.write_video(output_filename, x, fps=fps, video_codec='libx264', options={'crf': str(int(crf))})
-    return x
+    x_torchcodec = einops.rearrange(x, '(m n) c t h w -> t c (m h) (n w)', n=per_row)
+
+    _, _, H, W = x_torchcodec.shape
+
+    encoder = Encoder()
+    video_stream = encoder.add_video(
+        height=H,
+        width=W,
+        frame_rate=fps,
+        codec='libx264',
+        crf=crf
+    )
+
+    with encoder.open_file(output_filename):
+        video_stream.add_frames(x_torchcodec)
 
 
 def save_bcthw_as_png(x, output_filename):
