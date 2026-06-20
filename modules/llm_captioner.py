@@ -4,7 +4,7 @@ import numpy as np
 from transformers import AutoProcessor, AutoModelForCausalLM
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
 model = None
 processor = None
